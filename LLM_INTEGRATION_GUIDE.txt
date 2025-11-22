@@ -1,0 +1,253 @@
+================================================================================
+LLM INTEGRATION GUIDE - GEMINI API INTEGRATION
+================================================================================
+
+OVERVIEW:
+The healthcare triage system now supports BOTH LLM-based and rule-based workflows.
+All agents can use Gemini 2.0 Flash API for intelligent clinical decision-making.
+
+================================================================================
+SETUP REQUIREMENTS
+================================================================================
+
+1. Environment Configuration (.env file):
+   - GOOGLE_API_KEY: Your Google AI API key
+   - DATABASE_URL: SQLite database path
+   - Other settings in .env
+
+2. Python Dependencies:
+   - google-generativeai>=0.3.0 (already in requirements.txt)
+   - All other dependencies installed via: uv pip install -r requirements.txt
+
+================================================================================
+WORKFLOW MODES
+================================================================================
+
+1. LLM-BASED WORKFLOW (Default - use_llm=True):
+   - All agents use Gemini API for decisions
+   - Slower (~10-30 seconds per request)
+   - More contextual and clinically nuanced
+   - Better for complex cases
+   - Costs money (Gemini API usage)
+
+   Usage:
+   ```python
+   from app.orchestration.triage_workflow import create_triage_workflow
+   workflow = create_triage_workflow(use_llm=True)
+   result = await workflow.run_workflow(patient_data)
+   ```
+
+2. RULE-BASED WORKFLOW (use_llm=False):
+   - All agents use predefined medical rules
+   - Fast (~1-2 seconds per request)
+   - Deterministic and predictable
+   - Good for high-volume screening
+   - No API costs
+
+   Usage:
+   ```python
+   workflow = create_triage_workflow(use_llm=False)
+   result = await workflow.run_workflow(patient_data)
+   ```
+
+================================================================================
+AGENT FLOW - LLM MODE
+================================================================================
+
+1. INTAKE AGENT (LLM):
+   - Validates patient data using Gemini
+   - Checks vitals, symptoms, mandatory fields
+   - Returns: is_valid, errors, normalized_vitals, patient_summary
+
+2. IMAGE AGENT (Rule-based):
+   - Analyzes medical images if provided
+   - Returns: pallor, edema, malnutrition, skin_infection, dehydration
+
+3. CLINICAL AGENT (LLM):
+   - Analyzes patient using Gemini
+   - Computes risk scores for: anemia, maternal, sugar, infection, nutrition
+   - Returns: triage_level, primary_concern, risk_scores, reasoning_trace
+
+4. ACTION AGENT (LLM):
+   - Generates patient-facing advice using Gemini
+   - Creates multilingual recommendations
+   - Returns: summary_text, action_checklist, emergency_signs, voice_text
+
+5. SYNC AGENT (Rule-based):
+   - Stores complete visit record in database
+   - Returns: status, visit_id
+
+================================================================================
+LLM PROMPTS USED
+================================================================================
+
+1. INTAKE VALIDATION PROMPT:
+   - Validates vitals ranges (BP < 200/120, glucose < 500, HR 40-150, etc.)
+   - Checks mandatory fields
+   - Normalizes symptoms
+   - Strict validation mode
+
+2. CLINICAL ANALYSIS PROMPT:
+   - Considers WHO guidelines for maternal health
+   - Analyzes vital signs, symptoms, demographics
+   - Applies diabetes/glucose management rules
+   - Evaluates anemia, infection, nutrition indicators
+   - Evidence-based scoring (0-100 per domain)
+
+3. ACTION PLANNING PROMPT:
+   - Simple, non-technical language
+   - Specific, actionable steps with timeframes
+   - 3-5 emergency warning signs
+   - Text-to-speech compatible output
+   - Adapted for community health workers
+
+================================================================================
+TEST FILES
+================================================================================
+
+1. test_llm_workflow.py:
+   - Tests LLM-based workflow only
+   - Shows detailed LLM reasoning
+   - Demonstrates Gemini API integration
+   - Run: python test_llm_workflow.py
+
+2. test_llm_vs_rules.py:
+   - Compares LLM vs rule-based workflows
+   - Same patient data, different approaches
+   - Shows output differences
+   - Run: python test_llm_vs_rules.py
+
+3. test_workflow_logging.py:
+   - Original rule-based workflow test
+   - Shows detailed logging of all agents
+   - Run: python test_workflow_logging.py
+
+================================================================================
+API ENDPOINT USAGE
+================================================================================
+
+The FastAPI endpoint in main.py supports both modes:
+
+POST /triage
+{
+    "vitals": {
+        "bp_systolic": 150,
+        "bp_diastolic": 95,
+        "random_glucose": 110,
+        "temperature": 98.6,
+        "heart_rate": 88,
+        "spo2": 97
+    },
+    "symptoms": ["headache", "swelling", "dizziness"],
+    "age": 28,
+    "sex": "female",
+    "pregnant": true,
+    "gestational_weeks": 32,
+    "worker_id": "CHW001",
+    "patient_id": "PAT001",
+    "language": "english",
+    "offline_mode": false
+}
+
+Response:
+{
+    "visit_id": "v_...",
+    "triage_level": "high|moderate|low|urgent",
+    "risk_scores": {
+        "anemia": {"score": 0-100, "level": "..."},
+        "maternal": {"score": 0-100, "level": "..."},
+        "sugar": {"score": 0-100, "level": "..."},
+        "infection": {"score": 0-100, "level": "..."},
+        "nutrition": {"score": 0-100, "level": "..."}
+    },
+    "summary_text": "Plain language summary",
+    "action_checklist": ["Action 1", "Action 2", ...],
+    "emergency_signs": ["Sign 1", "Sign 2", ...],
+    "voice_text": "Text for TTS",
+    "reasons": [
+        {"fact": "...", "weight": 0-100, "confidence": 0.0-1.0}
+    ],
+    "timestamp": "ISO timestamp",
+    "offline_processed": false
+}
+
+================================================================================
+COST CONSIDERATIONS
+================================================================================
+
+LLM Mode (Gemini API):
+- Per request cost: ~$0.001-0.005 (varies by input/output size)
+- For 1000 requests/day: ~$1-5/day
+- Gemini 2.0 Flash is the cheapest model with good quality
+- See: https://ai.google.dev/pricing
+
+Rule-Based Mode:
+- Zero API costs
+- Only database storage costs
+- Suitable for high-volume, cost-sensitive deployments
+
+================================================================================
+CONFIGURATION OPTIONS
+================================================================================
+
+In triage_workflow.py, you can:
+
+1. Change LLM model:
+   self.model = genai.GenerativeModel(model_name="gemini-1.5-pro")
+
+2. Adjust temperature (creativity):
+   temperature=0.7  # 0=deterministic, 1=creative
+
+3. Adjust max tokens:
+   max_output_tokens=2048  # Longer responses = higher cost
+
+4. Add system instructions:
+   system_instruction="You are a medical AI..."
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+1. API Key Error:
+   - Check .env file has GOOGLE_API_KEY
+   - Verify key is valid at https://ai.google.dev/
+
+2. JSON Parsing Error:
+   - LLM response format incorrect
+   - Fallback to default response is triggered
+   - Check prompt in _llm_* methods
+
+3. Slow Response:
+   - LLM requests take 10-30 seconds
+   - Normal behavior, not a bug
+   - Use rule-based mode for speed
+
+4. Database Errors:
+   - Check DATABASE_URL in .env
+   - Ensure database file is writable
+   - Check Visit model in db_models.py
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Deploy to production:
+   - Set use_llm=True in main.py
+   - Configure API key in production environment
+   - Monitor API costs
+
+2. Integrate with UI:
+   - Frontend sends POST to /triage endpoint
+   - Display results in patient-friendly format
+   - Show reasoning trace for clinician review
+
+3. Add multilingual support:
+   - Change language parameter in payload
+   - LLM automatically generates responses in that language
+
+4. Monitor and optimize:
+   - Track API costs
+   - Monitor response times
+   - Collect feedback on recommendations
+
+================================================================================
