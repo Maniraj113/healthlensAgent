@@ -26,9 +26,15 @@ formatter = logging.Formatter(
 )
 console_handler.setFormatter(formatter)
 
-# Add handler to root logger
+# Create file handler
+file_handler = logging.FileHandler('app.log', mode='a')
+file_handler.setLevel(logging.DEBUG if settings.debug else logging.INFO)
+file_handler.setFormatter(formatter)
+
+# Add handlers to root logger
 if not root_logger.handlers:
     root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
 
 # Ensure app loggers propagate
 logger = logging.getLogger(__name__)
@@ -42,17 +48,17 @@ async def lifespan(app: FastAPI):
     Lifespan context manager for startup and shutdown events.
     """
     # Startup: Create database tables
-    logger.info("🚀 Starting Health Triage API...")
-    logger.info(f"📊 Environment: {settings.environment}")
-    logger.info(f"🗄️  Database: {settings.database_url}")
+    logger.info("Starting Health Triage API...")
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Database: {settings.database_url}")
     
     create_db_and_tables()
-    logger.info("✅ Database tables created")
+    logger.info("Database tables created")
     
     yield
     
     # Shutdown
-    logger.info("👋 Shutting down Health Triage API...")
+    logger.info("Shutting down Health Triage API...")
 
 
 # Create FastAPI application

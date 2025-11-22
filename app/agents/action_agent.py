@@ -2,9 +2,13 @@
 
 from google.adk.agents import LlmAgent
 from typing import Dict, Any
+import logging
 
 from ..core.nlg_templates import NLGTemplates
 from ..models.output_models import ReasoningResult
+
+
+logger = logging.getLogger(__name__)
 
 
 def generate_patient_communication(
@@ -24,6 +28,8 @@ def generate_patient_communication(
     Returns:
         ActionPlan dictionary with summary, checklist, emergency signs, voice text
     """
+    logger.info(f"Action Agent: Generating patient communication in {language}")
+    
     # Convert to ReasoningResult model
     result = ReasoningResult(**reasoning_result)
     
@@ -32,7 +38,10 @@ def generate_patient_communication(
     action_plan = nlg.generate_action_plan(result, language)
     
     # Convert to dictionary
-    return action_plan.model_dump()
+    plan_dict = action_plan.model_dump()
+    logger.info("Action Agent: Communication generation complete")
+    
+    return plan_dict
 
 
 def create_action_agent() -> LlmAgent:

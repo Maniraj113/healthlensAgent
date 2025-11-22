@@ -2,10 +2,14 @@
 
 from google.adk.agents import LlmAgent
 from typing import Dict, Any
+import logging
 
 from ..core.risk_calculator import RiskCalculator
 from ..models.input_models import NormalizedContext
 from ..models.output_models import ImageEvidence
+
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_risk_scores(
@@ -31,6 +35,8 @@ def calculate_risk_scores(
     Returns:
         ReasoningResult dictionary with risk scores, triage level, and reasoning trace
     """
+    logger.info("Clinical Agent: Starting risk score calculation")
+    
     # Convert dicts to Pydantic models
     context = NormalizedContext(**normalized_context)
     evidence = ImageEvidence(**image_evidence)
@@ -40,7 +46,10 @@ def calculate_risk_scores(
     reasoning_result = calculator.calculate_all_risks(context, evidence)
     
     # Convert to dictionary
-    return reasoning_result.model_dump()
+    result = reasoning_result.model_dump()
+    logger.info(f"Clinical Agent: Risk calculation complete. Triage level: {result.get('triage_level')}")
+    
+    return result
 
 
 def create_clinical_agent() -> LlmAgent:

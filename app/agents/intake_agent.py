@@ -31,6 +31,8 @@ def validate_and_normalize_input(payload_dict: Dict[str, Any]) -> Dict[str, Any]
     Returns:
         Normalized context dictionary
     """
+    logger.info("Intake Agent: Starting input validation and normalization")
+    
     # Validate vitals
     vitals = payload_dict.get("vitals", {})
     vitals_valid, vitals_errors = validate_vitals(vitals)
@@ -69,6 +71,8 @@ def validate_and_normalize_input(payload_dict: Dict[str, Any]) -> Dict[str, Any]
         "normalized_heart_rate": vitals.get("heart_rate"),
         "symptom_flags": symptom_flags,
     }
+    
+    logger.info(f"Intake Agent: Validation complete. Valid: {is_valid}")
     
     return normalized_context
 

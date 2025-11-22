@@ -307,6 +307,8 @@ Begin the workflow now.
     
     async def _llm_intake(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """LLM-based intake validation"""
+        logger.info("Intake Agent: Starting LLM-based validation")
+        
         prompt = f"""
 You are a medical intake assistant. Validate the following patient data:
 
@@ -345,8 +347,12 @@ Be practical - null vitals mean "not measured" and are valid.
             start = result_text.find('{')
             end = result_text.rfind('}') + 1
             json_str = result_text[start:end]
-            return json.loads(json_str)
+            result = json.loads(json_str)
+            logger.info(f"Intake Agent: LLM validation complete. Valid: {result.get('is_valid')}")
+            logger.info(f"Intake Agent: Response: {json.dumps(result, indent=2)}")
+            return result
         except:
+            logger.warning("Intake Agent: Failed to parse LLM response, using fallback")
             return {
                 "is_valid": False,
                 "errors": ["Failed to parse LLM response"],
@@ -397,6 +403,8 @@ Be practical - null vitals mean "not measured" and are valid.
         self, normalized_context: Dict[str, Any], image_evidence: Dict[str, Any]
     ) -> Dict[str, Any]:
         """LLM-based clinical risk scoring"""
+        logger.info("Clinical Agent: Starting LLM-based risk score calculation")
+        
         payload = normalized_context.get("payload", {})
         
         prompt = f"""
@@ -448,8 +456,12 @@ Be thorough and evidence-based. Assign scores based on clinical severity.
             start = result_text.find('{')
             end = result_text.rfind('}') + 1
             json_str = result_text[start:end]
-            return json.loads(json_str)
+            result = json.loads(json_str)
+            logger.info(f"Clinical Agent: LLM risk calculation complete. Triage level: {result.get('triage_level')}")
+            logger.info(f"Clinical Agent: Response: {json.dumps(result, indent=2)}")
+            return result
         except:
+            logger.warning("Clinical Agent: Failed to parse LLM response, using fallback")
             return {
                 "triage_level": "moderate",
                 "primary_concern": "Unable to assess",
@@ -480,6 +492,8 @@ Be thorough and evidence-based. Assign scores based on clinical severity.
         self, reasoning_result: Dict[str, Any], language: str
     ) -> Dict[str, Any]:
         """LLM-based action plan generation"""
+        logger.info("Action Agent: Starting LLM-based action planning")
+        
         prompt = f"""
 You are a patient communication specialist. Generate actionable advice based on this clinical assessment:
 
@@ -521,8 +535,12 @@ Be practical and actionable.
             start = result_text.find('{')
             end = result_text.rfind('}') + 1
             json_str = result_text[start:end]
-            return json.loads(json_str)
+            result = json.loads(json_str)
+            logger.info(f"Action Agent: LLM action planning complete. Language: {result.get('language')}")
+            logger.info(f"Action Agent: Response: {json.dumps(result, indent=2)}")
+            return result
         except:
+            logger.warning("Action Agent: Failed to parse LLM response, using fallback")
             return {
                 "summary_text": "Please consult with a healthcare provider",
                 "action_checklist": ["Visit health center"],

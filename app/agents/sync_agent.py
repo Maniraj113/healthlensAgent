@@ -4,8 +4,12 @@ from google.adk.agents import LlmAgent
 from typing import Dict, Any
 import uuid
 from datetime import datetime
+import logging
 
 from ..tools.db_tools import store_visit_record, update_visit_sync_status
+
+
+logger = logging.getLogger(__name__)
 
 
 def save_visit_to_database(
@@ -48,6 +52,8 @@ def save_visit_to_database(
     Returns:
         Status dictionary with visit_id and sync status
     """
+    logger.info(f"Sync Agent: Saving visit {visit_id} to database")
+    
     visit_data = {
         "visit_id": visit_id,
         "patient_id": patient_id,
@@ -69,6 +75,7 @@ def save_visit_to_database(
     
     try:
         stored_visit_id = store_visit_record(visit_data)
+        logger.info(f"Sync Agent: Visit {visit_id} saved successfully")
         return {
             "status": "success",
             "visit_id": stored_visit_id,
@@ -76,6 +83,7 @@ def save_visit_to_database(
             "message": "Visit record saved successfully"
         }
     except Exception as e:
+        logger.error(f"Sync Agent: Error saving visit {visit_id}: {str(e)}")
         return {
             "status": "error",
             "visit_id": visit_id,

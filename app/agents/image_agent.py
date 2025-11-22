@@ -2,6 +2,7 @@
 
 from google.adk.agents import LlmAgent
 from typing import Dict, Any, Optional
+import logging
 
 from ..tools.image_tools import (
     analyze_conjunctiva_image,
@@ -10,6 +11,9 @@ from ..tools.image_tools import (
     analyze_skin_image,
     create_image_evidence_dict,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def process_medical_images(
@@ -33,6 +37,8 @@ def process_medical_images(
     Returns:
         Dictionary with image evidence (pallor, edema, malnutrition, infection, dehydration)
     """
+    logger.info("Image Agent: Starting medical image processing")
+    
     conjunctiva_result = None
     swelling_result = None
     child_arm_result = None
@@ -58,6 +64,8 @@ def process_medical_images(
         child_arm_result=child_arm_result,
         skin_result=skin_result,
     )
+    
+    logger.info("Image Agent: Image processing complete")
     
     return evidence
 
