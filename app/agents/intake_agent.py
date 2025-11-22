@@ -99,13 +99,14 @@ def run_offline_triage(payload_dict: Dict[str, Any]) -> Dict[str, Any]:
     bp_sys = vitals.get("bp_systolic")
     bp_dia = vitals.get("bp_diastolic")
     
-    if pregnant and bp_sys and bp_sys >= 140:
+    if pregnant and bp_sys is not None and bp_sys >= 140:
         risk_level = "urgent"
         summary = "High blood pressure detected in pregnant patient. Seek immediate medical care."
         actions = ["Go to health center immediately", "Do not delay"]
     
     # Check for high glucose
-    elif vitals.get("random_glucose", 0) >= 200:
+    glucose = vitals.get("random_glucose")
+    if glucose is not None and glucose >= 200:
         risk_level = "high"
         summary = "High blood sugar detected. Medical consultation needed."
         actions = ["Visit health center within 24 hours", "Follow dietary advice"]
@@ -118,11 +119,22 @@ def run_offline_triage(payload_dict: Dict[str, Any]) -> Dict[str, Any]:
     
     return {
         "visit_id": f"offline_{uuid.uuid4().hex[:8]}",
-        "risk_level": risk_level,
-        "summary": summary,
-        "actions": actions,
-        "offline_mode": True,
+        "risk_scores": {
+            "anemia": {"score": 0, "level": "low"},
+            "maternal": {"score": 0, "level": "low"},
+            "sugar": {"score": 0, "level": "low"}
+        },
+        "triage_level": risk_level,
+        "summary_text": summary,
+        "action_checklist": actions,
+        "emergency_signs": [],
+        "voice_text": summary,
+        "reasons": [
+            {"fact": "Basic rule-based triage performed", "weight": 50, "confidence": 0.8}
+        ],
+        "image_evidence": None,
         "timestamp": datetime.utcnow().isoformat(),
+        "offline_processed": True,
     }
 
 

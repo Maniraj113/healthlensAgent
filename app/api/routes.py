@@ -2,11 +2,16 @@
 
 from fastapi import APIRouter, HTTPException, status
 from typing import List, Dict, Any
+import logging
 
 from ..models.input_models import InputPayload
 from ..models.output_models import FinalResult
 from ..orchestration import create_triage_workflow
 from ..tools.db_tools import retrieve_visit_record, get_unsynced_visits
+
+# Configure logger for routes
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 router = APIRouter(prefix="/api/v1", tags=["triage"])
 
@@ -33,18 +38,32 @@ async def analyze_patient(payload: InputPayload) -> FinalResult:
         HTTPException: If workflow execution fails
     """
     try:
+        logger.info("\n" + "="*80)
+        logger.info("📥 RECEIVED ANALYZE REQUEST FROM FRONTEND")
+        logger.info("="*80)
+        
         # Create workflow
+        logger.info("🔧 Creating triage workflow...")
         workflow = create_triage_workflow()
         
         # Convert payload to dict
         payload_dict = payload.model_dump()
+        logger.info(f"📋 Patient ID: {payload_dict.get('patient_id')}")
+        logger.info(f"👤 Worker ID: {payload_dict.get('worker_id')}")
+        logger.info(f"🌍 Language: {payload_dict.get('language')}")
         
         # Run workflow
+        logger.info("🚀 Starting workflow execution...")
         result = await workflow.run_workflow(payload_dict)
+        
+        logger.info(f"✅ Workflow completed - Visit ID: {result.visit_id}")
+        logger.info(f"📊 Triage Level: {result.triage_level}")
+        logger.info("="*80 + "\n")
         
         return result
     
     except Exception as e:
+        logger.error(f"❌ Error in analyze_patient: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing triage request: {str(e)}"

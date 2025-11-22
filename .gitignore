@@ -60,3 +60,46 @@ htmlcov/
 # Temporary files
 *.tmp
 temp/
+
+# Frontend - Node.js
+frontend/**/node_modules/
+frontend/**/.next/
+frontend/**/dist/
+frontend/**/build/
+frontend/**/.env.local
+frontend/**/.env.*.local
+frontend/**/*.tsbuildinfo
+frontend/**/.turbo/
+frontend/**/coverage/
+
+# Frontend - Package managers
+frontend/**/package-lock.json
+frontend/**/yarn.lock
+frontend/**/pnpm-lock.yaml
+
+# Frontend - IDE
+frontend/**/.vscode/
+frontend/**/.idea/
+frontend/**/*.swp
+frontend/**/*.swo
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# Cloud Build
+*.log
+cloudbuild-local-*.yaml
+
+# Kubernetes
+k8s/**/*.yaml.bak
+
+# Environment files
+.env.production
+.env.staging
+
+# Database backups
+*.db-backup
+*.db-wal
+*.db-shm

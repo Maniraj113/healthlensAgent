@@ -27,8 +27,9 @@ if api_key:
     genai.configure(api_key=api_key)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.propagate = True  # Ensure logs propagate to root logger
 
 
 class TriageWorkflow:
@@ -321,14 +322,22 @@ Respond in JSON format with:
 }}
 
 Check:
-1. All required fields present (vitals, symptoms, age, sex, patient_id, worker_id)
-2. Vitals in reasonable ranges (BP < 200/120, glucose < 500, HR 40-150, temp 35-42, SpO2 > 85)
+1. All required fields present (age, sex, patient_id, worker_id)
+2. Vitals in reasonable ranges if provided (BP < 200/120, glucose < 500, HR 40-150, temp 35-42, SpO2 > 85)
 3. Symptoms are valid medical terms
 4. Age is reasonable (0-120)
 
-Be strict about validation. If any field is missing or invalid, mark is_valid as false.
+Validation fails only if:
+- Required fields are missing
+- Provided vitals are out of reasonable ranges
+- Age is unreasonable
+- Symptoms contain invalid terms
+
+Null/missing vitals are acceptable and should not cause validation failure.
+
+Be practical - null vitals mean "not measured" and are valid.
 """
-        
+
         response = self.model.generate_content(prompt)
         result_text = response.text
         
@@ -746,18 +755,18 @@ Be practical and actionable.
         
         return FinalResult(
             visit_id=offline_result["visit_id"],
-            risk_scores={
+            risk_scores=offline_result.get("risk_scores", {
                 "anemia": {"score": 0, "level": "low"},
                 "maternal": {"score": 0, "level": "low"},
                 "sugar": {"score": 0, "level": "low"},
-            },
-            triage_level=risk_level_map.get(offline_result["risk_level"], "low"),
-            summary_text=offline_result["summary"],
-            action_checklist=offline_result["actions"],
-            emergency_signs=[],
-            voice_text=offline_result["summary"],
-            reasons=[],
-            image_evidence=None,
+            }),
+            triage_level=risk_level_map.get(offline_result["triage_level"], "low"),
+            summary_text=offline_result["summary_text"],
+            action_checklist=offline_result["action_checklist"],
+            emergency_signs=offline_result.get("emergency_signs", []),
+            voice_text=offline_result["voice_text"],
+            reasons=offline_result.get("reasons", []),
+            image_evidence=offline_result.get("image_evidence"),
             timestamp=offline_result["timestamp"],
             offline_processed=True,
         )

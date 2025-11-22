@@ -1,0 +1,7 @@
+{
+  "name": "SevaSetu: AI Clinical Triage",
+  "description": "An intelligent clinical reasoning assistant for ASHA and frontline health workers to triage patients, analyze vitals, and generate care plans.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
