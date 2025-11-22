@@ -51,11 +51,11 @@ const transformToBackendPayload = (data: PatientInput) => {
 
   // Map language values
   const languageMap: Record<string, string> = {
-    'English': 'english',
-    'Hindi': 'hindi',
-    'Tamil': 'tamil',
-    'Telugu': 'telugu',
-    'Bengali': 'bengali'
+    'english': 'english',
+    'hindi': 'hindi',
+    'tamil': 'tamil',
+    'telugu': 'telugu',
+    'bengali': 'bengali'
   };
 
   return {

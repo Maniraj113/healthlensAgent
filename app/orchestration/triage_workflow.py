@@ -122,13 +122,19 @@ class TriageWorkflow:
         try:
             # Step 1: Initialize state for sequential workflow
             logger.info("📋 INITIALIZING WORKFLOW STATE")
+            # Extract and normalize language
+            language_value = input_payload.get("language", "english")
+            if hasattr(language_value, 'value'):
+                language_value = language_value.value
+            language_normalized = str(language_value).lower()
+            
             initial_state = {
                 "visit_id": visit_id,
                 "timestamp": timestamp,
                 "input_payload": input_payload,
                 "patient_id": input_payload.get("patient_id"),
                 "worker_id": input_payload.get("worker_id"),
-                "language": input_payload.get("language", "english"),
+                "language": language_normalized,
                 # State will be populated by each agent
                 "normalized_context": None,
                 "image_evidence": None,
@@ -481,12 +487,9 @@ Be thorough and evidence-based. Assign scores based on clinical severity.
         reasoning_result: Dict[str, Any],
         language: str
     ) -> Dict[str, Any]:
-        """Run Action Planner Agent - LLM or rule-based"""
-        if self.use_llm:
-            return await self._llm_action_planning(reasoning_result, language)
-        else:
-            from ..agents.action_agent import generate_patient_communication
-            return generate_patient_communication(reasoning_result, language)
+        """Run Action Planner Agent - Always use NLG templates for multilingual support"""
+        from ..agents.action_agent import generate_patient_communication
+        return generate_patient_communication(reasoning_result, language)
     
     async def _llm_action_planning(
         self, reasoning_result: Dict[str, Any], language: str
@@ -703,6 +706,9 @@ Be practical and actionable.
         # Step 4: Action Agent - Generate advice
         logger.info("\n4️⃣  ACTION AGENT - Generating patient-facing advice...")
         language = input_payload.get("language", "english")
+        if hasattr(language, 'value'):
+            language = language.value
+        language = str(language).lower()
         from ..agents.action_agent import generate_patient_communication
         action_plan = generate_patient_communication(reasoning_result, language)
         logger.info(f"   ✓ Language: {action_plan['language']}")

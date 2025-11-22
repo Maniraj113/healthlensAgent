@@ -53,16 +53,6 @@ const UI_TEXT: Record<string, any> = {
     camera: "दृश्य प्रमाण",
     submit: "विश्लेषण और ट्राइएज",
     analyzing: "विश्लेषण कर रहा है..."
-  },
-  "Telugu": {
-    title: "రోగి అంచనా",
-    subtitle: "AI క్లినికల్ ట్రाइएజ్ కోసం వైటల్స్ మరియు లక్షణాలను నమోదు చేయండి.",
-    patientDetails: "రోగి వివరాలు",
-    vitals: "కీలక గణాంకాలు",
-    symptoms: "లక్షణాలు",
-    camera: "విజువల్ సాక్ష్యం",
-    submit: "విశ్లేషించి, వర్గీకరించండి",
-    analyzing: "విశ్లేషిస్తోంది..."
   }
 };
 
@@ -120,7 +110,7 @@ function App() {
           patient_id: patient.id,
           age: patient.age,
           sex: patient.sex as 'M' | 'F' | 'Other',
-          language: currentUser?.language || 'English'
+          language: (currentUser?.language || 'English').toLowerCase()
         };
       }
     } else {
@@ -293,7 +283,7 @@ function App() {
                 <h2 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2 border-b pb-2">
                   <UserIcon className="w-5 h-5" /> {t.patientDetails}
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Patient ID</label>
                     <input 
@@ -328,22 +318,24 @@ function App() {
                       <ChevronDown className="absolute right-3 top-3.5 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
-                  {formData.sex === 'F' && (
-                    <div className="flex items-center gap-3 bg-pink-50 p-3 rounded-lg border border-pink-200 md:col-span-3 animate-in fade-in">
-                      <input 
-                        type="checkbox" 
-                        id="pregnant"
-                        checked={formData.pregnant}
-                        onChange={e => handleInputChange('pregnant', e.target.checked)}
-                        className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500 bg-white border-gray-300"
-                      />
-                      <label htmlFor="pregnant" className="font-bold text-gray-800">Is Patient Pregnant?</label>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Language</label>
+                    <div className="relative">
+                      <select 
+                        value={formData.language} 
+                        onChange={e => handleInputChange('language', e.target.value)}
+                        className="w-full p-3 bg-white text-gray-900 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="english">English</option>
+                        <option value="hindi">हिंदी (Hindi)</option>
+                        <option value="tamil">தமிழ் (Tamil)</option>
+                      </select>
+                      <ChevronDown className="absolute right-3 top-3.5 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
-                  )}
+                  </div>
+
                 </div>
               </section>
-
-              {/* Section: Vitals */}
               <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <h2 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2 border-b pb-2">
                   <HeartPulse className="w-5 h-5" /> {t.vitals}
@@ -430,8 +422,6 @@ function App() {
                   </div>
                 </div>
               </section>
-
-              {/* Section: Symptoms */}
               <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <h2 className="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2 border-b pb-2">
                   <Stethoscope className="w-5 h-5" /> {t.symptoms}

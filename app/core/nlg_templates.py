@@ -222,11 +222,14 @@ class NLGTemplates:
         
         Args:
             reasoning_result: Clinical reasoning output
-            language: Target language for output
+            language: Target language for output (normalized to lowercase)
         
         Returns:
             ActionPlan with all communication elements
         """
+        # Normalize language to lowercase
+        language = str(language).lower()
+        
         primary_concern = reasoning_result.primary_concern
         triage_level = reasoning_result.triage_level
         

@@ -67,10 +67,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 onChange={(e) => setLanguage(e.target.value)}
                 className="bg-transparent border-none focus:ring-0 cursor-pointer"
               >
-                <option value="English">English</option>
-                <option value="Hindi">हिंदी (Hindi)</option>
-                <option value="Telugu">తెలుగు (Telugu)</option>
-                <option value="Tamil">தமிழ் (Tamil)</option>
+                <option value="english">English</option>
+                <option value="hindi">हिंदी (Hindi)</option>
+                <option value="tamil">தமிழ் (Tamil)</option>
               </select>
            </div>
         </div>
