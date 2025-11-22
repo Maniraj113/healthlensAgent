@@ -1,5 +1,14 @@
 steps:
-  # Step 1: Build backend Docker image
+  # Step 1: Fetch Google API Key from Secret Manager
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-secret'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud secrets versions access latest --secret="google-api-key" > /workspace/api-key.txt
+
+  # Step 2: Build backend Docker image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-backend'
     args:
@@ -14,7 +23,7 @@ steps:
     env:
       - 'DOCKER_BUILDKIT=1'
 
-  # Step 2: Build frontend Docker image
+  # Step 3: Build frontend Docker image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-frontend'
     args:
@@ -29,45 +38,97 @@ steps:
     env:
       - 'DOCKER_BUILDKIT=1'
 
-  # Step 3: Push backend image to Container Registry
+  # Step 4: Push backend image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-backend'
     args:
       - 'push'
       - 'gcr.io/$PROJECT_ID/health-triage-backend:$SHORT_SHA'
 
-  # Step 4: Push frontend image to Container Registry
+  # Step 5: Push frontend image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-frontend'
     args:
       - 'push'
       - 'gcr.io/$PROJECT_ID/health-triage-frontend:$SHORT_SHA'
 
-  # Step 5: Deploy backend to Cloud Run
-  - name: 'gcr.io/cloud-builders/gke-deploy'
-    id: 'deploy-backend'
+  # Step 6: Deploy backend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-backend-cloudrun'
     args:
       - 'run'
-      - '--filename=k8s/'
-      - '--image=gcr.io/$PROJECT_ID/health-triage-backend:$SHORT_SHA'
-      - '--location=us-central1'
-      - '--cluster=health-triage-cluster'
+      - 'deploy'
+      - 'health-triage-backend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/health-triage-backend:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'GOOGLE_API_KEY=$(cat /workspace/api-key.txt),ENVIRONMENT=production,DEBUG=false'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '3600'
+      - '--max-instances'
+      - '100'
 
-  # Step 6: Deploy frontend to Cloud Run
-  - name: 'gcr.io/cloud-builders/gke-deploy'
-    id: 'deploy-frontend'
+  # Step 7: Deploy frontend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-frontend-cloudrun'
     args:
       - 'run'
-      - '--filename=k8s/'
-      - '--image=gcr.io/$PROJECT_ID/health-triage-frontend:$SHORT_SHA'
-      - '--location=us-central1'
-      - '--cluster=health-triage-cluster'
+      - 'deploy'
+      - 'health-triage-frontend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/health-triage-frontend:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '50'
+
+  # Step 8: Get backend service URL
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-backend-url'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        BACKEND_URL=$(gcloud run services describe health-triage-backend \
+          --region us-central1 \
+          --format 'value(status.url)')
+        echo "Backend URL: $BACKEND_URL"
+        echo "$BACKEND_URL" > /workspace/backend-url.txt
+
+  # Step 9: Get frontend service URL
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-frontend-url'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        FRONTEND_URL=$(gcloud run services describe health-triage-frontend \
+          --region us-central1 \
+          --format 'value(status.url)')
+        echo "Frontend URL: $FRONTEND_URL"
+        echo "$FRONTEND_URL" > /workspace/frontend-url.txt
 
 # Build configuration
 options:
-  machineType: 'N1_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
-  
+
 # Timeout for the entire build
 timeout: '1800s'
 
@@ -78,11 +139,10 @@ images:
   - 'gcr.io/$PROJECT_ID/health-triage-frontend:$SHORT_SHA'
   - 'gcr.io/$PROJECT_ID/health-triage-frontend:latest'
 
-# Substitutions for custom variables
-substitutions:
-  _REGION: 'us-central1'
-  _SERVICE_NAME_BACKEND: 'health-triage-backend'
-  _SERVICE_NAME_FRONTEND: 'health-triage-frontend'
-
-# Trigger configuration (optional - configure in Cloud Build UI)
-# This file will be triggered on push to main branch
+# Artifacts to store
+artifacts:
+  objects:
+    location: 'gs://$PROJECT_ID-cloud-build-artifacts'
+    paths:
+      - '/workspace/backend-url.txt'
+      - '/workspace/frontend-url.txt'
